@@ -418,28 +418,33 @@ function filterGames(games) {
   }
 
   const singlesGames = _.get(gamesByIsSingles, true) || [];
-  const gamesByPorts = _.chain(singlesGames).groupBy((game) => {
-    const ports = _.map(game.settings.players, 'port');
-    return _.join(ports, '-');
+  const gamesByCodes = _.chain(singlesGames).groupBy((game) => {
+    const codes = _.map(game.metadata.players, (player) => player.names.code);
+    return _.join(_.sortBy(codes, (code) => code), '-');
   }).orderBy(['length'], ['desc']).value();
+  
+  // const gamesByPorts = _.chain(singlesGames).groupBy((game) => {
+  //   const ports = _.map(game.settings.players, 'port');
+  //   return _.join(ports, '-');
+  // }).orderBy(['length'], ['desc']).value();
 
-  const gamesWithSamePorts = gamesByPorts.shift();
-  if (_.some(gamesByPorts)) {
-    console.log("The following games have been excluded because the player ports differ:");
-    const flatGames = _.flatten(gamesByPorts);
+  const gamesWithSameCodes = gamesByCodes.shift();
+  if (_.some(gamesByCodes)) {
+    console.log("The following games have been excluded because the player codes differ:");
+    const flatGames = _.flatten(gamesByCodes);
     _.forEach(flatGames, (game) => {
       console.log(game.filePath);
     });
     console.log();
   }
 
-  if (_.isEmpty(gamesWithSamePorts)) {
+  if (_.isEmpty(gamesWithSameCodes)) {
     throw new Error("There were no valid games found to compute stats from.");
   }
 
-  console.log(`Including ${gamesWithSamePorts.length} games for stat calculation...`);
+  console.log(`Including ${gamesWithSameCodes.length} games for stat calculation...`);
 
-  return gamesWithSamePorts;
+  return gamesWithSameCodes;
 }
 
 function computeStats(games) {
