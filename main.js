@@ -59,9 +59,10 @@ const statDefininitions = {
     type: "text",
     calculate: (games, playerIndex) => {
       const killMoves = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const conversions = _.get(game, ['stats', 'conversions']) || [];
         const conversionsForPlayer = _.filter(conversions, conversion => {
-          const isForPlayer = conversion.playerIndex === playerIndex;
+          const isForPlayer = codes[conversion.playerIndex] === codes[playerIndex];
           const didKill = conversion.didKill;
           return isForPlayer && didKill;
         });
@@ -103,9 +104,10 @@ const statDefininitions = {
     type: "text",
     calculate: (games, playerIndex) => {
       const neutralMoves = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const conversions = _.get(game, ['stats', 'conversions']) || [];
         const conversionsForPlayer = _.filter(conversions, conversion => {
-          const isForPlayer = conversion.playerIndex === playerIndex;
+          const isForPlayer = codes[conversion.playerIndex] === codes[playerIndex];
           const isNeutralWin = conversion.openingType === 'neutral-win';
           return isForPlayer && isNeutralWin;
         });
@@ -151,9 +153,10 @@ const statDefininitions = {
     recommendedRounding: 1,
     calculate: (games, playerIndex) => {
       const oppStocks = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const stocks = _.get(game, ['stats', 'stocks']) || [];
         return _.filter(stocks, stock => {
-          const isOpp = stock.playerIndex !== playerIndex;
+          const isOpp = codes[stock.playerIndex] !== codes[playerIndex];
           const hasEndPercent = stock.endPercent !== null;
           return isOpp && hasEndPercent;
         });
@@ -185,9 +188,10 @@ const statDefininitions = {
     recommendedRounding: 1,
     calculate: (games, playerIndex) => {
       const playerStocks = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const stocks = _.get(game, ['stats', 'stocks']) || [];
         return _.filter(stocks, stock => {
-          const isPlayer = stock.playerIndex === playerIndex;
+          const isPlayer = codes[stock.playerIndex] === codes[playerIndex];
           const hasEndPercent = stock.endPercent !== null;
           return isPlayer && hasEndPercent;
         });
@@ -219,16 +223,17 @@ const statDefininitions = {
     recommendedRounding: 0,
     calculate: (games, playerIndex) => {
       const sdCounts = _.map(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const stocks = _.get(game, ['stats', 'stocks']) || [];
         const playerEndedStocks = _.filter(stocks, stock => {
-          const isPlayer = stock.playerIndex === playerIndex;
+          const isPlayer = codes[stock.playerIndex] === codes[playerIndex];
           const hasEndPercent = stock.endPercent !== null;
           return isPlayer && hasEndPercent;
         });
 
         const conversions = _.get(game, ['stats', 'conversions']) || [];
         const oppKillConversions = _.filter(conversions, conversion => {
-          const isOpp = conversion.playerIndex !== playerIndex;
+          const isOpp = codes[conversion.playerIndex] !== codes[playerIndex];
           const didKill = conversion.didKill;
           return isOpp && didKill;
         });
@@ -265,9 +270,10 @@ const statDefininitions = {
     recommendedRounding: 1,
     calculate: (games, playerIndex) => {
       const oppStocks = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const stocks = _.get(game, ['stats', 'stocks']) || [];
         return _.filter(stocks, stock => {
-          const isOpp = stock.playerIndex !== playerIndex;
+          const isOpp = codes[stock.playerIndex] !== codes[playerIndex];
           const hasEndPercent = stock.endPercent !== null;
           return isOpp && hasEndPercent;
         });
@@ -294,9 +300,10 @@ const statDefininitions = {
     recommendedRounding: 1,
     calculate: (games, playerIndex) => {
       const punishes = _.flatMap(games, game => {
+        const codes = _.map(game.metadata.players, (player) => player.names.code);
         const conversions = _.get(game, ['stats', 'conversions']) || [];
         return _.filter(conversions, conversion => {
-          const isForPlayer = conversion.playerIndex === playerIndex;
+          const isForPlayer = codes[conversion.playerIndex] === codes[playerIndex];
           const hasEndPercent = conversion.endPercent !== null;
           return isForPlayer && hasEndPercent;
         });
@@ -335,9 +342,11 @@ const statDefininitions = {
 
 function genOverallRatioStat(games, playerIndex, field, fixedNum, type = "ratio") {
   const statRatios = _.map(games, (game) => {
+    const codes = _.map(game.metadata.players, (player) => player.names.code);
     const overallStats = _.get(game, ['stats', 'overall']);
-    const overallStatsByPlayer = _.keyBy(overallStats, 'playerIndex');
-    const overallStatsForPlayer = overallStatsByPlayer[playerIndex];
+    _.each(overallStats, (stats, i) => stats.code = codes[i]);
+    const overallStatsByPlayer = _.keyBy(overallStats, 'code');
+    const overallStatsForPlayer = overallStatsByPlayer[codes[playerIndex]];
     return overallStatsForPlayer[field];
   });
 
@@ -449,7 +458,6 @@ function filterGames(games) {
 
 function computeStats(games) {
   const firstGame = _.first(games);
-  // console.log(firstGame);
   const orderIndices = _.map(firstGame.settings.players, 'playerIndex');
   const reversedIndices = _.chain(orderIndices).clone().reverse().value();
   const indices = [orderIndices, reversedIndices];
@@ -607,7 +615,7 @@ function generateOutput(games) {
 }
 
 function writeToFile(output) {
-  console.log(util.inspect(output, { depth: 6, colors: true }));
+  //console.log(util.inspect(output, { depth: 6, colors: true }));
   fs.writeFileSync('output.json', JSON.stringify(output));
   console.log("Finished writting stats to output.json!");
 }
